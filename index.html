@@ -1,0 +1,455 @@
+<title>Worlds 2026 Pricing Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: trading-desk console — sticky control bar, tabbed boards, each market a self-contained ticket with its own margin dial */
+:root{
+  --bg:#eef1f5; --panel:#ffffff; --panel2:#f5f7fa; --line:#d8dee7; --fg:#18202b; --muted:#5c6878;
+  --accent:#a77a14; --accent-soft:#f3e7c7; --blue:#1f5fb8; --good:#16794a; --bad:#b4372f; --warn:#9a6a00;
+  --good-soft:#dff2e7; --bad-soft:#f8e1df;
+  --f-display:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f141b; --panel:#161d27; --panel2:#1b2430; --line:#2a3544; --fg:#e4e9f0; --muted:#8d9aab;
+  --accent:#e0b44c; --accent-soft:#3a2f17; --blue:#6ea4f0; --good:#4cc38a; --bad:#f07a70; --warn:#e2b04a;
+  --good-soft:#163526; --bad-soft:#3b1d1b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f141b; --panel:#161d27; --panel2:#1b2430; --line:#2a3544; --fg:#e4e9f0; --muted:#8d9aab;
+  --accent:#e0b44c; --accent-soft:#3a2f17; --blue:#6ea4f0; --good:#4cc38a; --bad:#f07a70; --warn:#e2b04a;
+  --good-soft:#163526; --bad-soft:#3b1d1b; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.45}
+.wrap{max-width:1280px;margin:0 auto;padding-inline:16px;padding-block:0 48px}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;padding-block:22px 14px}
+h1{font-family:var(--f-display);font-weight:700;font-size:30px;letter-spacing:.01em;margin:0;line-height:1.05;text-wrap:balance}
+h1 small{display:block;font-family:var(--f-body);font-weight:500;font-size:13px;color:var(--muted);letter-spacing:0;margin-top:4px}
+.cup{color:var(--accent)}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding-block:8px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.tabs{display:flex;flex-wrap:wrap;gap:4px}
+.tab{font-family:var(--f-display);font-weight:600;font-size:15px;border:1px solid var(--line);background:var(--panel);color:var(--fg);padding:6px 12px;border-radius:6px;cursor:pointer}
+.tab[aria-selected="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.ctrls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-left:auto;font-size:13px;color:var(--muted)}
+label.inl{display:flex;gap:6px;align-items:center}
+select,input[type=number],input[type=text],textarea{font:inherit;color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:4px 6px}
+input[type=number]{width:64px;font-family:var(--f-mono);font-size:12.5px}
+button{font:inherit;cursor:pointer;border-radius:5px;border:1px solid var(--line);background:var(--panel);color:var(--fg);padding:5px 10px}
+button.primary{background:var(--accent);border-color:var(--accent);color:#111;font-weight:600}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.status{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.board{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,460px),1fr));gap:14px;margin-top:14px;align-items:start}
+.board.wide{grid-template-columns:1fr}
+.mkt{background:var(--panel);border:1px solid var(--line);border-radius:8px;min-width:0;overflow:hidden}
+.mkt-h{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:9px 12px;background:var(--panel2);border-bottom:1px solid var(--line)}
+.mkt-h h3{font-family:var(--f-display);font-weight:600;font-size:16px;margin:0;flex:1 1 160px}
+.mkt-h .dial{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--muted)}
+.mkt-h select{font-size:12px;padding:3px 4px}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:5px 8px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+th{font-family:var(--f-body);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+th:first-child,td:first-child{text-align:left}
+td.n{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:12.5px}
+td.price{font-family:var(--f-mono);font-weight:500;font-size:13px}
+td.price span{display:inline-block;min-width:58px;padding:2px 6px;border-radius:4px;background:var(--accent-soft);text-align:center}
+tr:last-child td{border-bottom:0}
+input.b365{width:66px;font-family:var(--f-mono);font-size:12px;padding:2px 4px}
+.edge-pos{color:var(--good);font-weight:600}
+.edge-neg{color:var(--bad)}
+.foot{display:flex;flex-wrap:wrap;gap:4px 14px;padding:7px 12px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);background:var(--panel2)}
+.foot b{color:var(--fg);font-family:var(--f-mono);font-weight:500}
+.chip{display:inline-block;font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:1px 6px;border-radius:999px;border:1px solid var(--line);color:var(--muted);margin-left:6px;vertical-align:1px}
+.reg{font-size:10.5px;font-weight:600;color:var(--muted);margin-left:6px;letter-spacing:.04em}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;min-width:0}
+.panel h2{font-family:var(--f-display);font-size:20px;margin:0 0 6px}
+.panel p,.panel li{max-width:75ch}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:14px;margin-top:14px;align-items:start}
+.pick{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px}
+.note{font-size:12.5px;color:var(--muted)}
+.bar-cell{position:relative}
+.pbar{position:absolute;left:0;top:3px;bottom:3px;background:var(--accent-soft);border-radius:2px;z-index:0}
+.bar-cell span{position:relative;z-index:1}
+textarea{width:100%;min-height:120px;font-family:var(--f-mono);font-size:12px}
+.callout{border-left:3px solid var(--accent);padding:6px 12px;background:var(--panel2);border-radius:0 6px 6px 0;margin:10px 0}
+code{font-family:var(--f-mono);font-size:12px;background:var(--panel2);padding:1px 4px;border-radius:3px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <h1><span class="cup">◆</span> Worlds 2026 Pricing Desk
+    <small>LoL World Championship · Play-In Oct 15–18 · Swiss Oct 23–31 · Knockouts Nov 3–14 · model as of Oct 11, 2026</small></h1>
+  <div class="status" id="status">simulating…</div>
+</header>
+
+<div class="bar">
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" data-tab="outrights" aria-selected="true">Outrights</button>
+    <button class="tab" role="tab" data-tab="teams">Team specials</button>
+    <button class="tab" role="tab" data-tab="playin">Play-In</button>
+    <button class="tab" role="tab" data-tab="match">Match pricer</button>
+    <button class="tab" role="tab" data-tab="b365">bet365 import</button>
+    <button class="tab" role="tab" data-tab="model">Model &amp; ratings</button>
+  </div>
+  <div class="ctrls">
+    <label class="inl" for="fmt">Odds
+      <select id="fmt"><option value="dec">Decimal</option><option value="frac">Fractional</option><option value="us">American</option></select></label>
+    <label class="inl" for="ladder"><input type="checkbox" id="ladder" checked> Round to bet365 ladder</label>
+    <label class="inl" for="gmethod">Default method
+      <select id="gmethod"><option value="power">Power</option><option value="prop">Proportional</option><option value="or">Odds-ratio</option><option value="add">Additive</option></select></label>
+    <label class="inl" for="shift">All margins ±<input type="number" id="shift" step="0.5" value="0"> pts</label>
+  </div>
+</div>
+
+<section id="tab-outrights" class="view"></section>
+<section id="tab-teams" class="view" hidden></section>
+<section id="tab-playin" class="view" hidden></section>
+<section id="tab-match" class="view" hidden></section>
+<section id="tab-b365" class="view" hidden></section>
+<section id="tab-model" class="view" hidden></section>
+</div>
+
+<script>
+/* ============ DATA (gol.gg S16 season stats + map-level rating fit, pulled Oct 11 2026) ============ */
+// s: k=kills/g, d=deaths/g, dur=min, fb=first blood%, ft=first tower%, dpg=dragons/g, dra=dragon control%, bpg=barons/g, bar=baron control%, tk/tl=towers killed/lost per g
+const T=[
+ ['GEN','Gen.G','LCK',1,2.33,[16.5,12.6,31.67,.471,.580,2.70,.603,.83,.659,7.2,4.6]],
+ ['HLE','Hanwha Life Esports','LCK',2,1.86,[18.0,15.6,31.05,.565,.565,2.30,.536,.76,.607,6.8,4.8]],
+ ['T1','T1','LCK',3,1.73,[17.8,15.3,32.18,.519,.568,2.36,.543,.73,.574,6.7,5.0]],
+ ['DK','Dplus KIA','LCK',4,1.55,[14.9,14.1,32.37,.509,.538,2.15,.507,.56,.481,6.2,5.4]],
+ ['AL',"Anyone's Legend",'LPL',1,1.17,[15.6,12.4,32.67,.592,.479,2.35,.543,.71,.577,6.1,5.0]],
+ ['BLG','Bilibili Gaming','LPL',2,1.76,[18.7,12.8,32.70,.492,.650,2.68,.590,1.01,.728,7.6,3.8]],
+ ['TES','Top Esports','LPL',3,0.95,[15.5,16.1,31.92,.521,.429,2.36,.526,.71,.548,6.2,5.4]],
+ ['IG','Invictus Gaming','LPL',4,0.88,[14.4,15.8,32.30,.508,.484,2.38,.531,.71,.499,5.8,5.8]],
+ ['G2','G2 Esports','LEC',1,1.08,[16.1,13.2,33.08,.450,.618,2.55,.554,1.02,.679,7.4,4.9]],
+ ['MKOI','Movistar KOI','LEC',3,0.22,[15.2,14.0,33.15,.432,.541,2.62,.544,.77,.555,6.4,5.7]],
+ ['KC','Karmine Corp','LEC',0,0.80,[15.9,13.0,33.07,.514,.522,2.75,.580,.77,.556,6.9,5.3]],
+ ['TL','Team Liquid','LCS',1,1.02,[15.3,11.5,32.28,.500,.731,2.53,.549,.88,.658,6.8,4.6]],
+ ['LYON','LYON','LCS',3,0.99,[14.7,12.1,33.45,.566,.582,2.45,.504,.72,.548,6.8,5.0]],
+ ['C9','Cloud9','LCS',0,0.55,[14.1,12.4,32.88,.570,.570,2.65,.563,.80,.583,6.4,5.3]],
+ ['TSW','Team Secret Whales','LCP',2,0.34,[17.9,12.5,31.25,.545,.618,2.51,.577,.89,.679,7.1,4.4]],
+ ['CFO','CTBC Flying Oyster','LCP',4,-0.63,[15.7,16.1,31.88,.552,.506,2.28,.504,.56,.435,5.6,6.2]],
+ ['MVK','MVK Esports','LCP',0,-0.85,[13.2,14.8,33.20,.519,.506,2.42,.523,.68,.477,6.0,6.3]],
+ ['LOS','LØS','CBLOL',2,0.15,[15.5,12.4,32.18,.505,.638,2.05,.475,.74,.603,7.0,4.9]],
+ ['FUR','FURIA','CBLOL',0,0.11,[15.5,11.4,33.12,.539,.608,2.61,.566,1.03,.653,6.8,5.0]],
+];
+const TEAM={};T.forEach(([c,n,reg,pool,r,s])=>TEAM[c]={c,n,reg,pool,r0:r,s:{k:s[0],d:s[1],dur:s[2],fb:s[3],ft:s[4],dpg:s[5],dra:s[6],bpg:s[7],bar:s[8],tk:s[9],tl:s[10]}});
+const CODES=T.map(t=>t[0]);
+const SWISS15=CODES.filter(c=>TEAM[c].pool>0);
+const PLAYIN=['FUR','MVK','C9','KC']; // UB R1: FUR v MVK, C9 v KC
+const REGIONS=['LCK','LPL','LEC','LCS','LCP','CBLOL'];
+
+/* ============ STATE ============ */
+const LS='w26desk.v1';
+let saved={};try{saved=JSON.parse(localStorage.getItem(LS)||'{}')}catch(e){}
+const S={fmt:saved.fmt||'dec',ladder:saved.ladder!==false,gmethod:saved.gmethod||'power',shift:0,
+  R:Object.assign(Object.fromEntries(CODES.map(c=>[c,TEAM[c].r0])),saved.R||{}),
+  spread:saved.spread||0.6,nsim:saved.nsim||20000,margins:saved.margins||{},methods:saved.methods||{},b365:saved.b365||{},
+  mA:saved.mA||'KC',mB:saved.mB||'C9',mBo:saved.mBo||5,tab:saved.tab||'outrights',teamSel:saved.teamSel||'T1'};
+function persist(){try{localStorage.setItem(LS,JSON.stringify({fmt:S.fmt,ladder:S.ladder,gmethod:S.gmethod,R:S.R,spread:S.spread,nsim:S.nsim,margins:S.margins,methods:S.methods,b365:S.b365,mA:S.mA,mB:S.mB,mBo:S.mBo,tab:S.tab,teamSel:S.teamSel}))}catch(e){}}
+
+/* Default margins (bet365-style esports levels) */
+const DEF={winner:30,region:14,final:22,semis:20,quals:16,finalists:40,playinw:12,topreg:16,threeO:9,oThree:9,stage:20,record:20,qual:8,
+  ml:6.5,hcp:7,maps:7,cs:14,m1:7,kills:8,khcp:8,oe:7,fb:8,ft:8,fd:8,fbar:8,dur:8,drag:8,tow:8,bar:8};
+const margin=k=>Math.max(0,((S.margins[k]??DEF[k.split(':')[0]]??8)+S.shift))/100;
+const method=k=>S.methods[k]||S.gmethod;
+
+/* ============ MATH ============ */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const mapP=(a,b)=>1/(1+Math.exp(-S.spread*(S.R[a]-S.R[b])));
+function comb(n,k){let r=1;for(let i=1;i<=k;i++)r=r*(n-k+i)/i;return r}
+function seriesScores(p,bo){const need=(bo+1)/2,out=[];for(let j=0;j<need;j++)out.push({a:need,b:j,p:comb(need-1+j,j)*Math.pow(p,need)*Math.pow(1-p,j)});for(let j=0;j<need;j++)out.push({a:j,b:need,p:comb(need-1+j,j)*Math.pow(1-p,need)*Math.pow(p,j)});return out}
+const seriesWin=(p,bo)=>seriesScores(p,bo).filter(s=>s.a>s.b).reduce((x,s)=>x+s.p,0);
+function erf(x){const t=1/(1+.3275911*Math.abs(x));const y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-.284496736)*t+.254829592)*t*Math.exp(-x*x);return x>=0?y:-y}
+const Phi=z=>.5*(1+erf(z/Math.SQRT2));
+const log5=(a,b)=>a*(1-b)/(a*(1-b)+b*(1-a));
+function nbPmf(mu,varr,max){const r=mu*mu/Math.max(varr-mu,1e-6),q=r/(r+mu);const out=[Math.pow(q,r)];for(let k=1;k<=max;k++)out.push(out[k-1]*(k-1+r)/k*(1-q));return out}
+function poisCdf(mu,k){let s=0,t=Math.exp(-mu);for(let i=0;i<=k;i++){s+=t;t*=mu/(i+1)}return s}
+
+/* Margin methods: probs -> book probabilities summing to W*(1+m) */
+function applyMargin(p,W,m,meth){
+  const n=p.length,target=W*(1+m),cap=x=>Math.min(x,.995);
+  if(m<=0)return p.map(cap);
+  if(meth==='prop')return p.map(x=>cap(x*(1+m)));
+  if(meth==='add')return p.map(x=>cap(Math.max(x+(target-W)/n,x*0.5)));
+  if(meth==='power'){let lo=.05,hi=1;for(let i=0;i<60;i++){const k=(lo+hi)/2,s=p.reduce((a,x)=>a+(x>0?cap(Math.pow(x,k)):0),0);if(s>target)lo=k;else hi=k}const k=(lo+hi)/2;return p.map(x=>x>0?cap(Math.pow(x,k)):0)}
+  if(meth==='or'){let lo=1,hi=50;for(let i=0;i<60;i++){const c=(lo+hi)/2,s=p.reduce((a,x)=>a+cap(c*x/(1-x+c*x)),0);if(s<target)lo=c;else hi=c}const c=(lo+hi)/2;return p.map(x=>cap(c*x/(1-x+c*x)))}
+  return p;
+}
+/* bet365-style fractional ladder */
+const LAD=('1/100 1/66 1/50 1/40 1/33 1/25 1/20 1/16 1/14 1/12 1/10 1/9 1/8 2/15 1/7 2/13 1/6 2/11 1/5 2/9 1/4 2/7 3/10 1/3 4/11 2/5 4/9 1/2 8/15 4/7 8/13 4/6 8/11 4/5 5/6 10/11 1/1 21/20 11/10 6/5 5/4 11/8 6/4 13/8 7/4 15/8 2/1 85/40 9/4 12/5 5/2 11/4 3/1 10/3 7/2 4/1 9/2 5/1 11/2 6/1 13/2 7/1 15/2 8/1 17/2 9/1 10/1 11/1 12/1 14/1 16/1 18/1 20/1 22/1 25/1 28/1 33/1 40/1 50/1 66/1 80/1 100/1 125/1 150/1 200/1 250/1 300/1 400/1 500/1 750/1 1000/1').split(' ').map(f=>{const[a,b]=f.split('/').map(Number);return{f,d:1+a/b}});
+function ladderDown(d){let best=LAD[0];for(const l of LAD){if(l.d<=d+1e-9)best=l;else break}return best}
+function price(q){if(!(q>0))return null;let d=1/q;if(d<1.001)d=1.001;let f=null;if(S.ladder){const l=ladderDown(d);d=l.d;f=l.f}return{d,f}}
+function fmtOdds(o){if(!o)return'—';if(S.fmt==='dec')return o.d.toFixed(2);if(S.fmt==='frac'){if(o.f)return o.f==='1/1'?'EVS':o.f;return toFrac(o.d)}const x=o.d-1;return x>=1?'+'+Math.round(x*100):'-'+Math.round(100/x)}
+function toFrac(d){const x=d-1;let bn=1,bd=1,be=9;for(let den=1;den<=40;den++){const num=Math.round(x*den);const e=Math.abs(num/den-x);if(e<be-1e-9){be=e;bn=num;bd=den}}return bn+'/'+bd}
+const fairOdds=p=>p>0?(1/p):null;
+function parseOdds(s){s=(s||'').trim();if(!s)return null;if(/^evs?$/i.test(s))return 2;if(s.includes('/')){const[a,b]=s.split('/').map(Number);return b?1+a/b:null}const v=Number(s);if(!isFinite(v))return null;if(/^[+-]/.test(s)&&Math.abs(v)>=100)return v>0?1+v/100:1+100/-v;return v>1?v:null}
+const pct=(x,d=1)=>(x*100).toFixed(d)+'%';
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ============ TOURNAMENT SIMULATION ============ */
+function shuffle(a,rng){for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function playSeries(a,b,bo,rng){const need=(bo+1)/2,p=mapP(a,b);let wa=0,wb=0;while(wa<need&&wb<need){if(rng()<p)wa++;else wb++}return wa>wb?a:b}
+function simPlayIn(rng){
+  const u1=playSeries('FUR','MVK',5,rng),l1=u1==='FUR'?'MVK':'FUR';
+  const u2=playSeries('C9','KC',5,rng),l2=u2==='C9'?'KC':'C9';
+  const uf=playSeries(u1,u2,5,rng),ufl=uf===u1?u2:u1;
+  const lb=playSeries(l1,l2,5,rng);
+  const lf=playSeries(ufl,lb,5,rng);
+  return playSeries(uf,lf,5,rng);
+}
+function pairUp(list,opp,rng,checkReg){
+  for(let t=0;t<60;t++){shuffle(list,rng);let ok=true;const pairs=[];
+    for(let i=0;i<list.length;i+=2){const a=list[i],b=list[i+1];if(opp[a].has(b)||(checkReg&&TEAM[a].reg===TEAM[b].reg)){ok=false;break}pairs.push([a,b])}
+    if(ok)return pairs}
+  const pairs=[];for(let i=0;i<list.length;i+=2)pairs.push([list[i],list[i+1]]);return pairs;
+}
+function simSwiss(piw,rng){
+  const teams=[...SWISS15,piw],W={},L={},opp={};teams.forEach(c=>{W[c]=0;L[c]=0;opp[c]=new Set()});
+  const pool=k=>teams.filter(c=>(c===piw?4:TEAM[c].pool)===k);
+  let pairs=[];
+  for(let t=0;t<80;t++){const p1=shuffle(pool(1),rng),p4=shuffle(pool(4),rng),p2=shuffle(pool(2),rng),p3=shuffle(pool(3),rng);
+    pairs=[...p1.map((a,i)=>[a,p4[i]]),...p2.map((a,i)=>[a,p3[i]])];if(pairs.every(([a,b])=>TEAM[a].reg!==TEAM[b].reg))break}
+  for(let round=1;round<=5;round++){
+    if(round>1){pairs=[];const groups={};teams.filter(c=>W[c]<3&&L[c]<3).forEach(c=>{(groups[W[c]+'-'+L[c]]=groups[W[c]+'-'+L[c]]||[]).push(c)});
+      for(const g in groups)pairs.push(...pairUp(groups[g],opp,rng,false))}
+    for(const[a,b]of pairs){const bo=(W[a]===2||L[a]===2)?3:1;const w=playSeries(a,b,bo,rng);opp[a].add(b);opp[b].add(a);if(w===a){W[a]++;L[b]++}else{W[b]++;L[a]++}}
+  }
+  return{W,L,teams};
+}
+function simKO(W,L,teams,rng){
+  const q=teams.filter(c=>W[c]===3);
+  const r30=shuffle(q.filter(c=>L[c]===0),rng),r31=shuffle(q.filter(c=>L[c]===1),rng),r32=shuffle(q.filter(c=>L[c]===2),rng);
+  // 3-0s face 3-2s, the remaining 3-2 faces a 3-1, the other two 3-1s meet; 3-0s split into opposite halves
+  const pool=[...r32,...r31];const qf=[];
+  r30.forEach(a=>qf.push([a,pool.shift()]));
+  while(pool.length)qf.push([pool.shift(),pool.shift()]);
+  const top=[qf[0],qf[2]].filter(Boolean),bot=[qf[1],qf[3]].filter(Boolean);
+  const order=shuffle([0,1],rng)[0]?[top[0],bot[0],top[1],bot[1]]:[top[0],bot[1],top[1],bot[0]];
+  const qw=order.map(([a,b])=>playSeries(a,b,5,rng));
+  const s1=playSeries(qw[0],qw[1],5,rng),s2=playSeries(qw[2],qw[3],5,rng);
+  const champ=playSeries(s1,s2,5,rng);
+  return{qf:q,sf:qw,fin:[s1,s2],champ};
+}
+// stage codes: 0 Play-In out, 1 Swiss 0-3, 2 1-3, 3 2-3, 4 QF, 5 SF, 6 runner-up, 7 champion
+const STAGES=['Out in Play-In','Swiss 0-3','Swiss 1-3','Swiss 2-3','Quarter-finals','Semi-finals','Runner-up','Winner'];
+let SIM=null;
+function runSim(done){
+  const N=S.nsim,rng=mulberry32(20261011),acc={};CODES.forEach(c=>acc[c]={stage:new Float64Array(8),rec:{},piw:0,swissPlayed:0});
+  const regWin={},topReg={},finals={};REGIONS.forEach(r=>{regWin[r]=0;topReg[r]={}});
+  let i=0;const chunk=2000;
+  function step(){
+    const end=Math.min(N,i+chunk);
+    for(;i<end;i++){
+      const piw=simPlayIn(rng);acc[piw].piw++;
+      const {W,L,teams}=simSwiss(piw,rng);const ko=simKO(W,L,teams,rng);
+      const st={};PLAYIN.forEach(c=>{if(c!==piw)st[c]=0});
+      teams.forEach(c=>{acc[c].swissPlayed++;const rk=W[c]+'-'+L[c];acc[c].rec[rk]=(acc[c].rec[rk]||0)+1;st[c]=W[c]===3?4:1+W[c]});
+      ko.sf.forEach(c=>st[c]=5);ko.fin.forEach(c=>st[c]=6);st[ko.champ]=7;
+      for(const c in st)acc[c].stage[st[c]]++;
+      regWin[TEAM[ko.champ].reg]++;
+      const fk=[...ko.fin].sort().join('|');finals[fk]=(finals[fk]||0)+1;
+      REGIONS.forEach(r=>{const mem=Object.keys(st).filter(c=>TEAM[c].reg===r);let best=-1;mem.forEach(c=>{const sc=st[c]*10+(st[c]>=1&&st[c]<=4?W[c]-L[c]:0);if(sc>best)best=sc});
+        const top=mem.filter(c=>(st[c]*10+(st[c]>=1&&st[c]<=4?W[c]-L[c]:0))===best);top.forEach(c=>topReg[r][c]=(topReg[r][c]||0)+1/top.length)});
+    }
+    document.getElementById('status').textContent=`simulating… ${Math.round(i/N*100)}%`;
+    if(i<N)setTimeout(step,0);else{
+      const P={};CODES.forEach(c=>{const s=acc[c].stage;const ge=k=>{let x=0;for(let j=k;j<8;j++)x+=s[j];return x/N};
+        P[c]={win:s[7]/N,final:ge(6),sf:ge(5),qf:ge(4),piw:acc[c].piw/N,stage:[...s].map(x=>x/N),swiss:acc[c].swissPlayed/N,rec:Object.fromEntries(Object.entries(acc[c].rec).map(([k,v])=>[k,v/N]))}});
+      SIM={P,regWin:Object.fromEntries(REGIONS.map(r=>[r,regWin[r]/N])),topReg:Object.fromEntries(REGIONS.map(r=>[r,Object.fromEntries(Object.entries(topReg[r]).map(([c,v])=>[c,v/N]))])),finals:Object.fromEntries(Object.entries(finals).map(([k,v])=>[k,v/N])),N};
+      document.getElementById('status').textContent=`${N.toLocaleString()} tournament sims · seed fixed`;done&&done();
+    }
+  }
+  step();
+}
+
+/* ============ MARKET RENDERING ============ */
+/* sels: [{id,label,p,tag}] ; W = winners per market (1 for win, 2 for to-reach-final…) */
+function market(key,title,sels,W=1,opts={}){
+  const m=margin(key),meth=method(key),q=applyMargin(sels.map(s=>s.p),W,m,meth);
+  const b=S.b365[key]||{};
+  let ourBook=0,theirBook=0,theirN=0,ourSub=0;
+  const rows=sels.map((s,i)=>{const o=price(q[i]);if(o)ourBook+=1/o.d;const bo=parseOdds(b[s.id]);let edge='';let bi='';
+    if(bo){theirBook+=1/bo;theirN++;ourSub+=s.p;bi=pct(1/bo);const ev=s.p*bo-1;edge=`<span class="${ev>0?'edge-pos':'edge-neg'}">${ev>0?'+':''}${(ev*100).toFixed(1)}%</span>`}
+    const bar=opts.bars?`<div class="pbar" style="width:${Math.min(100,s.p/(opts.barMax||1)*100)}%"></div>`:'';
+    return `<tr><td class="${opts.bars?'bar-cell':''}">${bar}<span>${esc(s.label)}${s.tag?`<span class="reg">${s.tag}</span>`:''}</span></td><td class="n">${pct(s.p,s.p<.01?2:1)}</td><td class="n">${s.p>1e-4?(1/s.p).toFixed(2):'—'}</td><td class="price"><span>${fmtOdds(o)}</span></td>
+      <td><input class="b365" data-k="${esc(key)}" data-s="${esc(s.id)}" value="${esc(b[s.id]||'')}" placeholder="bet365" aria-label="bet365 odds ${esc(s.label)}"></td><td class="n">${bi}</td><td class="n">${edge}</td></tr>`}).join('');
+  let fit='';
+  if(theirN>=2){const f=fitMethod(sels.map(s=>s.p),sels.map(s=>parseOdds(b[s.id])),W);fit=` · bet365 book <b>${pct(theirBook/W*(theirN===sels.length?1:1),1)}</b>${theirN<sels.length?` on ${theirN}/${sels.length}`:''} · best-fit method <b>${f.name}</b> @ <b>${(f.m*100).toFixed(1)}%</b> (rmse ${f.rmse.toFixed(3)} logit)`}
+  return `<article class="mkt"><div class="mkt-h"><h3>${esc(title)}</h3>
+    <span class="dial"><label for="m-${esc(key)}">Margin</label><input type="number" id="m-${esc(key)}" class="mrg" data-k="${esc(key)}" step="0.5" min="0" value="${(S.margins[key]??DEF[key.split(':')[0]]??8)}">%
+    <select class="meth" data-k="${esc(key)}" aria-label="margin method">${['power','prop','or','add'].map(x=>`<option value="${x}" ${meth===x?'selected':''}>${{power:'Power',prop:'Proportional',or:'Odds-ratio',add:'Additive'}[x]}</option>`).join('')}</select></span></div>
+    <div class="tw"><table><thead><tr><th>Selection</th><th>Fair %</th><th>Fair</th><th>Our price</th><th>bet365</th><th>Impl.</th><th>EV</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="foot">Our book <b>${pct(ourBook/W)}</b> · target ${pct(1+m)}${fit}</div></article>`;
+}
+/* Fit which margin method + level best reproduces the bookmaker's prices from our fair probabilities */
+function fitMethod(p,odds,W){
+  const idx=odds.map((o,i)=>o?i:-1).filter(i=>i>=0),their=idx.map(i=>1/odds[i]);
+  const lg=x=>Math.log(Math.min(Math.max(x,1e-4),.9999)/(1-Math.min(Math.max(x,1e-4),.9999)));
+  let best={rmse:1e9};
+  for(const meth of ['power','prop','or','add']){let lo=0,hi=1.5;
+    for(let it=0;it<40;it++){const mm=(lo+hi)/2,q=applyMargin(p,W,mm,meth),s=idx.reduce((a,i)=>a+q[i],0);if(s<their.reduce((a,x)=>a+x,0))lo=mm;else hi=mm}
+    const mm=(lo+hi)/2,q=applyMargin(p,W,mm,meth);const rmse=Math.sqrt(idx.reduce((a,i,j)=>a+Math.pow(lg(q[i])-lg(their[j]),2),0)/idx.length);
+    if(rmse<best.rmse)best={rmse,m:mm,name:{power:'Power',prop:'Proportional',or:'Odds-ratio',add:'Additive'}[meth]}}
+  return best;
+}
+function yesNo(key,title,rows,opts={}){
+  const m=margin(key),meth=method(key),b=S.b365[key]||{};
+  const body=rows.map(r=>{const q=applyMargin([r.p,1-r.p],1,m,meth);const y=price(q[0]),n=price(q[1]);const by=parseOdds(b[r.id+':y']);const ev=by?r.p*by-1:null;
+    return `<tr><td>${esc(r.label)}${r.tag?`<span class="reg">${r.tag}</span>`:''}</td><td class="n">${pct(r.p)}</td><td class="price"><span>${fmtOdds(y)}</span></td><td class="price"><span>${fmtOdds(n)}</span></td>
+    <td><input class="b365" data-k="${esc(key)}" data-s="${esc(r.id)}:y" value="${esc(b[r.id+':y']||'')}" placeholder="Yes" aria-label="bet365 yes ${esc(r.label)}"></td><td class="n">${ev===null?'':`<span class="${ev>0?'edge-pos':'edge-neg'}">${ev>0?'+':''}${(ev*100).toFixed(1)}%</span>`}</td></tr>`}).join('');
+  return `<article class="mkt"><div class="mkt-h"><h3>${esc(title)}</h3><span class="dial"><label for="m-${esc(key)}">Margin</label><input type="number" id="m-${esc(key)}" class="mrg" data-k="${esc(key)}" step="0.5" min="0" value="${(S.margins[key]??DEF[key.split(':')[0]]??8)}">%
+  <select class="meth" data-k="${esc(key)}" aria-label="margin method">${['power','prop','or','add'].map(x=>`<option value="${x}" ${meth===x?'selected':''}>${{power:'Power',prop:'Proportional',or:'Odds-ratio',add:'Additive'}[x]}</option>`).join('')}</select></span></div>
+  <div class="tw"><table><thead><tr><th>Team</th><th>Fair</th><th>Yes</th><th>No</th><th>bet365 Yes</th><th>EV</th></tr></thead><tbody>${body}</tbody></table></div>
+  <div class="foot">Each line is a two-way book at ${pct(1+m)} · ${opts.note||''}</div></article>`;
+}
+const byP=(a,b)=>b.p-a.p;
+const tsel=(c,p)=>({id:c,label:TEAM[c].n,p,tag:TEAM[c].reg});
+
+/* ============ VIEWS ============ */
+function viewOutrights(){
+  const P=SIM.P;
+  const win=CODES.map(c=>tsel(c,P[c].win)).sort(byP);
+  const reg=REGIONS.map(r=>({id:r,label:r,p:SIM.regWin[r]})).sort(byP);
+  const fin=CODES.map(c=>tsel(c,P[c].final)).sort(byP);
+  const sf=CODES.map(c=>tsel(c,P[c].sf)).sort(byP);
+  const qf=CODES.map(c=>tsel(c,P[c].qf)).sort(byP);
+  const fl=Object.entries(SIM.finals).sort((a,b)=>b[1]-a[1]);const top=fl.slice(0,24);const other=fl.slice(24).reduce((a,x)=>a+x[1],0);
+  const finals=top.map(([k,p])=>({id:k,label:k.split('|').map(c=>TEAM[c].c).join(' v '),p})).concat([{id:'other',label:'Any other pairing',p:other}]);
+  const maxW=win[0].p;
+  document.getElementById('tab-outrights').innerHTML=`<div class="board">
+   ${market('winner','Tournament Winner',win,1,{bars:true,barMax:maxW})}
+   <div style="display:grid;gap:14px;min-width:0">${market('region','Winning Region',reg,1,{bars:true,barMax:reg[0].p})}${market('playinw','Play-In Winner (to reach Swiss)',PLAYIN.map(c=>tsel(c,P[c].piw)).sort(byP))}</div>
+   ${market('final','To Reach the Final',fin,2)}
+   ${market('semis','To Reach the Semi-finals',sf,4)}
+   ${market('quals','To Qualify for Knockouts',qf,8)}
+   ${market('finalists','Name the Finalists',finals)}
+  </div>`;
+}
+function viewTeams(){
+  const P=SIM.P;
+  const tops=REGIONS.filter(r=>r!=='CBLOL'||true).map(r=>{const e=Object.entries(SIM.topReg[r]).map(([c,p])=>tsel(c,p)).sort(byP);return market('topreg:'+r,`Top ${r} Team`,e)}).join('');
+  const sw=SWISS15.concat(['KC','C9','FUR','MVK']);
+  const three0=yesNo('threeO','To go 3-0 in Swiss',sw.map(c=>({id:c,label:TEAM[c].n,tag:TEAM[c].reg,p:P[c].rec['3-0']||0})).sort(byP),{note:'Play-In teams include the chance they fail to reach Swiss'});
+  const o3=yesNo('oThree','To go 0-3 in Swiss',sw.map(c=>({id:c,label:TEAM[c].n,tag:TEAM[c].reg,p:P[c].rec['0-3']||0})).sort(byP),{note:'Play-In teams: No wins if they fail to reach Swiss'});
+  const c=S.teamSel,p=P[c];
+  const stageSels=STAGES.map((s,i)=>({id:String(i),label:s,p:p.stage[i]})).filter(s=>TEAM[c].pool===0||s.id!=='0');
+  const recs=['3-0','3-1','3-2','2-3','1-3','0-3'].map(r=>({id:r,label:'Swiss record '+r,p:p.rec[r]||0}));
+  if(TEAM[c].pool===0)recs.push({id:'np',label:'Does not reach Swiss',p:1-p.swiss});
+  document.getElementById('tab-teams').innerHTML=`<div class="pick"><label for="teamSel"><b>Team</b></label><select id="teamSel">${CODES.map(x=>`<option value="${x}" ${x===c?'selected':''}>${TEAM[x].n} (${TEAM[x].reg})</option>`).join('')}</select><span class="note">Stage of elimination and exact Swiss record re-price for the chosen team.</span></div>
+   <div class="board">${market('stage:'+c,`${TEAM[c].n} · Stage of Elimination`,stageSels)}${market('record:'+c,`${TEAM[c].n} · Swiss Record`,recs)}
+   ${tops}</div><div class="board">${three0}${o3}</div>`;
+}
+/* ---- per-match markets ---- */
+function matchMarkets(a,b,bo,pref){
+  const A=TEAM[a],B=TEAM[b],p=mapP(a,b),sa=A.s,sb=B.s,out=[];
+  const sc=seriesScores(p,bo),pw=sc.filter(s=>s.a>s.b).reduce((x,s)=>x+s.p,0);
+  out.push(market('ml:'+pref+a+b+bo,`Match Winner (Bo${bo})`,[{id:'a',label:A.n,p:pw},{id:'b',label:B.n,p:1-pw}]));
+  if(bo>1){
+    const need=(bo+1)/2;const hc=[];
+    for(let h=1.5;h<need;h++){const pa=sc.filter(s=>s.a-s.b>h).reduce((x,s)=>x+s.p,0);const pb=sc.filter(s=>s.b-s.a>h).reduce((x,s)=>x+s.p,0);
+      out.push(market('hcp:'+pref+a+b+bo+h,`Map Handicap ${h}`,[{id:'a-',label:`${A.c} -${h}`,p:pa},{id:'b+',label:`${B.c} +${h}`,p:1-pa}]));
+      out.push(market('hcp:'+pref+a+b+bo+'r'+h,`Map Handicap ${h} (reverse)`,[{id:'b-',label:`${B.c} -${h}`,p:pb},{id:'a+',label:`${A.c} +${h}`,p:1-pb}]))}
+    for(let t=need+.5;t<bo;t++){const po=sc.filter(s=>s.a+s.b>t).reduce((x,s)=>x+s.p,0);out.push(market('maps:'+pref+a+b+bo+t,`Total Maps ${t}`,[{id:'o',label:`Over ${t}`,p:po},{id:'u',label:`Under ${t}`,p:1-po}]))}
+    out.push(market('cs:'+pref+a+b+bo,'Correct Score',sc.map(s=>({id:s.a+'-'+s.b,label:s.a>s.b?`${A.c} ${s.a}-${s.b}`:`${B.c} ${s.b}-${s.a}`,p:s.p})).sort(byP)));
+  }
+  // ---- Map 1 props ----
+  const m1=bo>1?'Map 1 ':'';
+  if(bo>1)out.push(market('m1:'+pref+a+b,'Map 1 Winner',[{id:'a',label:A.n,p},{id:'b',label:B.n,p:1-p}]));
+  const mu=(sa.k+sb.d+sb.k+sa.d)/2,pmf=nbPmf(mu,mu*2.2,90),cdf=x=>pmf.slice(0,Math.floor(x)+1).reduce((s,v)=>s+v,0);
+  const base=Math.round(mu)-.5;[base-3,base,base+3].forEach(L=>{const po=1-cdf(L);out.push(market('kills:'+pref+a+b+L,`${m1}Total Kills ${L}`,[{id:'o',label:`Over ${L}`,p:po},{id:'u',label:`Under ${L}`,p:1-po}]))});
+  const odd=pmf.reduce((s,v,i)=>s+(i%2?v:0),0);out.push(market('oe:'+pref+a+b,`${m1}Total Kills Odd/Even`,[{id:'odd',label:'Odd',p:odd},{id:'even',label:'Even',p:1-odd}]));
+  const kd=9.5,km=kd*(-Math.log(1/Math.min(Math.max(p,.02),.98)-1))/1.7,kl=Math.max(1.5,Math.round(Math.abs(km))+.5),fav=km>=0;
+  const pc=1-Phi((kl-Math.abs(km))/kd);
+  out.push(market('khcp:'+pref+a+b,`${m1}Kill Handicap`,[{id:'f',label:`${fav?A.c:B.c} -${kl}`,p:pc},{id:'d',label:`${fav?B.c:A.c} +${kl}`,p:1-pc}]));
+  const sp=x=>.5+x*(p-.5);
+  const fb=.75*log5(sa.fb,sb.fb)+.25*sp(.3),ft=.5*log5(sa.ft,sb.ft)+.5*sp(.7),fd=.5*log5(sa.dra,sb.dra)+.5*sp(.5),fbar=.4*log5(sa.bar,sb.bar)+.6*sp(.85);
+  [['fb','First Blood',fb],['ft','First Tower',ft],['fd','First Dragon',fd],['fbar','First Baron',fbar]].forEach(([k,t,x])=>out.push(market(k+':'+pref+a+b,`${m1}${t}`,[{id:'a',label:A.n,p:x},{id:'b',label:B.n,p:1-x}])));
+  const dmu=(sa.dur+sb.dur)/2-2.2*Math.abs(2*p-1),dsd=5.6,dl=Math.floor(dmu)+.5;[dl-2,dl,dl+2].forEach(L=>{const po=1-Phi((L-dmu)/dsd);out.push(market('dur:'+pref+a+b+L,`${m1}Duration ${L} min`,[{id:'o',label:`Over ${L}:00`,p:po},{id:'u',label:`Under ${L}:00`,p:1-po}]))});
+  const drmu=(sa.dpg+sb.dpg)*.98;[3.5,4.5,5.5].forEach(L=>{const po=1-Phi((L-drmu)/1.15);out.push(market('drag:'+pref+a+b+L,`${m1}Total Dragons ${L}`,[{id:'o',label:`Over ${L}`,p:po},{id:'u',label:`Under ${L}`,p:1-po}]))});
+  const tmu=(sa.tk+sb.tl+sb.tk+sa.tl)/2,tl=Math.round(tmu)-.5;[tl-1,tl,tl+1].forEach(L=>{const po=1-Phi((L-tmu)/2.7);out.push(market('tow:'+pref+a+b+L,`${m1}Total Towers ${L}`,[{id:'o',label:`Over ${L}`,p:po},{id:'u',label:`Under ${L}`,p:1-po}]))});
+  const bmu=sa.bpg+sb.bpg;[.5,1.5].forEach(L=>{const po=1-poisCdf(bmu,Math.floor(L));out.push(market('bar:'+pref+a+b+L,`${m1}Total Barons ${L}`,[{id:'o',label:`Over ${L}`,p:po},{id:'u',label:`Under ${L}`,p:1-po}]))});
+  const info=`<div class="panel" style="grid-column:1/-1"><b>${A.n}</b> v <b>${B.n}</b> · Bo${bo} · map win ${pct(p)} / ${pct(1-p)} · rating gap ${(S.R[a]-S.R[b]).toFixed(2)}
+   <div class="note">Map-1 model inputs: expected kills ${mu.toFixed(1)} · expected kill margin ${km.toFixed(1)} · duration ${dmu.toFixed(1)} min · dragons ${drmu.toFixed(2)} · towers ${tmu.toFixed(1)} · barons ${bmu.toFixed(2)}</div></div>`;
+  return info+out.join('');
+}
+function viewPlayIn(){
+  document.getElementById('tab-playin').innerHTML=`<div class="grid2"><div class="panel"><h2>Upper bracket round 1 · Oct 15, Los Angeles</h2><p class="note">Double elimination, all series Bo5. Only the Play-In winner reaches the Swiss Stage (Pool 4). Winner's-side finalist gets side/pick choice in game 1; not modelled.</p></div></div>
+   <h2 style="font-family:var(--f-display);margin:18px 0 0">FURIA v MVK Esports</h2><div class="board">${matchMarkets('FUR','MVK',5,'pi1')}</div>
+   <h2 style="font-family:var(--f-display);margin:18px 0 0">Cloud9 v Karmine Corp</h2><div class="board">${matchMarkets('C9','KC',5,'pi2')}</div>`;
+}
+function viewMatch(){
+  const opt=sel=>CODES.map(x=>`<option value="${x}" ${x===sel?'selected':''}>${TEAM[x].n}</option>`).join('');
+  document.getElementById('tab-match').innerHTML=`<div class="pick"><label for="mA"><b>Team A</b></label><select id="mA">${opt(S.mA)}</select><span>v</span><label for="mB" class="visually"><b>Team B</b></label><select id="mB">${opt(S.mB)}</select>
+   <label for="mBo"><b>Format</b></label><select id="mBo">${[1,3,5].map(x=>`<option value="${x}" ${+S.mBo===x?'selected':''}>Bo${x}</option>`).join('')}</select>
+   <span class="note">Swiss: Bo1, Bo3 when a team is on 2 wins or 2 losses. Knockouts: Bo5.</span></div>
+   <div class="board">${S.mA===S.mB?'<div class="panel">Pick two different teams.</div>':matchMarkets(S.mA,S.mB,+S.mBo,'mp')}</div>`;
+}
+function viewB365(){
+  document.getElementById('tab-b365').innerHTML=`<div class="grid2"><div class="panel"><h2>Paste bet365 outright prices</h2>
+   <p class="note">One selection per line, name then price, e.g. <code>Gen.G 9/4</code>, <code>BLG 4.50</code>, <code>LCK 4/6</code>. Works with fractional, decimal or American. Team codes and full names are both recognised.</p>
+   <label for="pmk"><b>Market</b></label> <select id="pmk"><option value="winner">Tournament Winner</option><option value="region">Winning Region</option><option value="final">To Reach the Final</option><option value="semis">To Reach the Semi-finals</option><option value="quals">To Qualify for Knockouts</option><option value="playinw">Play-In Winner</option></select>
+   <textarea id="paste" placeholder="Gen.G 2/1&#10;Bilibili Gaming 4/1&#10;Hanwha Life Esports 9/2"></textarea>
+   <div class="pick"><button class="primary" id="doPaste">Import prices</button><button id="clrB">Clear all bet365 prices</button><span class="note" id="pasteMsg"></span></div></div>
+   <div class="panel"><h2>What the comparison shows</h2>
+   <ul><li><b>Impl.</b> is the bet365 implied probability, margin included.</li>
+   <li><b>EV</b> is our fair probability × bet365 odds − 1. Positive means bet365's price is longer than our fair line.</li>
+   <li>The footer gives bet365's book percentage and the margin method and level that best reproduce their prices from our fair line. A Power or Odds-ratio fit means they shade longshots harder than favourites, which is the usual pattern on bet365 outrights.</li>
+   <li>Rows where EV is well away from the fitted method are where bet365's own opinion or liability position differs from this model.</li></ul></div></div>`;
+}
+function viewModel(){
+  const rows=CODES.slice().sort((a,b)=>S.R[b]-S.R[a]).map(c=>`<tr><td>${TEAM[c].n}<span class="reg">${TEAM[c].reg}</span>${TEAM[c].pool?`<span class="chip">Pool ${TEAM[c].pool}</span>`:'<span class="chip">Play-In</span>'}</td>
+   <td class="n">${TEAM[c].r0.toFixed(2)}</td><td><input type="number" class="rt" data-c="${c}" id="rt-${c}" step="0.05" value="${S.R[c].toFixed(2)}" aria-label="rating ${TEAM[c].n}"></td>
+   <td class="n">${pct(mapP(c,'TL'))}</td><td class="n">${SIM?pct(SIM.P[c].win):''}</td></tr>`).join('');
+  document.getElementById('tab-model').innerHTML=`<div class="grid2">
+  <div class="mkt"><div class="mkt-h"><h3>Power ratings (map-level logit)</h3><span class="dial"><label for="spread">Spread</label><input type="number" id="spread" step="0.05" min="0.3" max="1.5" value="${S.spread}"><label for="nsim">Sims</label><input type="number" id="nsim" step="5000" min="5000" max="100000" value="${S.nsim}" style="width:78px"><button class="primary" id="rerun">Re-simulate</button><button id="resetR">Reset</button></span></div>
+   <div class="tw"><table><thead><tr><th>Team</th><th>Fitted</th><th>Used</th><th>Map v TL</th><th>Win</th></tr></thead><tbody>${rows}</tbody></table></div>
+   <div class="foot">Map win prob = 1 / (1 + e<sup>−spread·(R<sub>A</sub>−R<sub>B</sub>)</sup>). Spread &lt; 1 compresses favourites (more upsets).</div></div>
+  <div class="panel"><h2>How these markets are built</h2>
+   <ol>
+   <li><b>Ratings.</b> A Bradley–Terry fit on every map from 993 series in 2026 (LCK, LPL, LEC, LCS, LCP, CBLOL, First Stand, MSI, EWC), with a 120-day half-life and light shrinkage, from gol.gg match lists. International events are the only bridge between regions, so cross-region gaps carry the most uncertainty. Adjust them here.</li>
+   <li><b>Series.</b> Map wins are independent at the rating probability, so Bo3/Bo5 winners, handicaps, total maps and correct scores follow from the binomial.</li>
+   <li><b>Outrights.</b> Fixed-seed Monte Carlo of the whole event: the Play-In double-elim bracket (Bo5), the 16-team Swiss with Pool 1 v 4 and Pool 2 v 3 openers, no same-region round 1, no rematches, Bo3 for qualification and elimination games, then Bo5 knockouts with 3-0 teams split into opposite halves facing 3-2 teams.</li>
+   <li><b>Map props.</b> Season rates from gol.gg: kills from each side's kills for and against (negative binomial, variance 2.2× mean), first objectives from log5 of the two teams' rates blended with map-win probability, duration from the average game time minus a mismatch term, dragons, towers and barons from per-game rates.</li>
+   <li><b>Margin.</b> Each market takes its own margin and method. <i>Power</i> raises fair probabilities to an exponent below 1, <i>Odds-ratio</i> scales odds, <i>Proportional</i> scales probabilities, <i>Additive</i> spreads margin evenly. Prices then round down to the fractional ladder, as bet365 does.</li></ol>
+   <div class="callout"><b>bet365 pattern.</b> Esports outrights at bet365 typically carry a 125–140% book on a 19-team winner market, with the extra margin loaded on longshots. That loading matches the Power or Odds-ratio method, not Proportional. Match lines usually sit around 106–108%, handicaps and totals at 107–109%, correct score at 112–118% and map props at about 108%. These are defaults in this tool, not confirmed from their page. Paste their prices on the bet365 import tab to measure their real book and method.</div>
+   <p class="note">Data caveat: kills, tower and objective rates are measured against each team's own league, so minor-region teams (LCP, CBLOL) show inflated rates. Ratings come from match results and aren't affected by this.</p>
+   <p class="note">Sources: gol.gg S16 team stats &amp; tournament match lists; Leaguepedia Worlds 2026 format and pools; Play-In pairings via esports.net / egamersworld.</p></div></div>`;
+}
+const VIEWS={outrights:viewOutrights,teams:viewTeams,playin:viewPlayIn,match:viewMatch,b365:viewB365,model:viewModel};
+function render(){if(!SIM)return;VIEWS[S.tab]()}
+function renderAll(){if(!SIM)return;Object.values(VIEWS).forEach(f=>f())}
+
+/* ============ EVENTS ============ */
+document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{S.tab=b.dataset.tab;persist();showTab()}));
+function showTab(){document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===S.tab));document.querySelectorAll('.view').forEach(v=>v.hidden=v.id!=='tab-'+S.tab);render()}
+const $=id=>document.getElementById(id);
+$('fmt').value=S.fmt;$('ladder').checked=S.ladder;$('gmethod').value=S.gmethod;
+$('fmt').onchange=e=>{S.fmt=e.target.value;persist();render()};
+$('ladder').onchange=e=>{S.ladder=e.target.checked;persist();render()};
+$('gmethod').onchange=e=>{S.gmethod=e.target.value;S.methods={};persist();render()};
+$('shift').oninput=e=>{S.shift=+e.target.value||0;render()};
+document.addEventListener('change',e=>{const t=e.target;
+  if(t.classList.contains('mrg')){S.margins[t.dataset.k]=+t.value;persist();render()}
+  else if(t.classList.contains('meth')){S.methods[t.dataset.k]=t.value;persist();render()}
+  else if(t.classList.contains('b365')){(S.b365[t.dataset.k]=S.b365[t.dataset.k]||{})[t.dataset.s]=t.value;persist();render()}
+  else if(t.id==='teamSel'){S.teamSel=t.value;persist();render()}
+  else if(t.id==='mA'||t.id==='mB'||t.id==='mBo'){S[t.id]=t.value;persist();render()}
+  else if(t.classList.contains('rt')){S.R[t.dataset.c]=+t.value;persist()}
+  else if(t.id==='spread'){S.spread=+t.value||0.6;persist()}
+  else if(t.id==='nsim'){S.nsim=Math.min(100000,Math.max(5000,+t.value||20000));persist()}
+});
+document.addEventListener('click',e=>{const t=e.target;
+  if(t.id==='rerun'){runSim(render)}
+  if(t.id==='resetR'){CODES.forEach(c=>S.R[c]=TEAM[c].r0);S.spread=0.6;persist();runSim(render)}
+  if(t.id==='clrB'){S.b365={};persist();$('pasteMsg').textContent='Cleared.'}
+  if(t.id==='doPaste'){const mk=$('pmk').value,lines=$('paste').value.split(/\n/);let n=0,miss=[];S.b365[mk]=S.b365[mk]||{};
+    const names=mk==='region'?REGIONS.map(r=>[r,[r.toLowerCase(),r==='LPL'?'china':r==='LCK'?'korea':r==='LEC'?'emea':r==='LCS'?'north america':r==='LCP'?'asia pacific':'brazil']]):CODES.map(c=>[c,[c.toLowerCase(),TEAM[c].n.toLowerCase(),TEAM[c].n.toLowerCase().replace(/[^a-z0-9]/g,''),c==='LOS'?'los':'',c==='KC'?'karmine':'',c==='G2'?'g2':'',c==='HLE'?'hanwha':'',c==='BLG'?'bilibili':'',c==='GEN'?'gen.g':'',c==='TL'?'liquid':'',c==='TSW'?'secret whales':'',c==='CFO'?'ctbc':'',c==='MKOI'?'koi':'',c==='DK'?'dplus':'',c==='TES'?'top esports':'',c==='IG'?'invictus':'',c==='AL'?'anyone':'',c==='FUR'?'furia':'',c==='C9'?'cloud9':''].filter(Boolean)]);
+    lines.forEach(l=>{const m=l.trim().match(/^(.*?)[\s\t:,-]+([+-]?\d+(?:[./]\d+)?|evs?)\s*$/i);if(!m)return;const nm=m[1].toLowerCase().replace(/ø/g,'o').trim(),nn=nm.replace(/[^a-z0-9]/g,'');
+      const hit=names.find(([c,al])=>al.some(a=>a&&(nm===a||nn===a.replace(/[^a-z0-9]/g,'')||nm.includes(a)&&a.length>3)));if(hit&&parseOdds(m[2])){S.b365[mk][hit[0]]=m[2];n++}else miss.push(m[1])});
+    persist();$('pasteMsg').textContent=`Imported ${n} price${n===1?'':'s'}${miss.length?' · not matched: '+miss.join(', '):''}.`;renderAll()}
+});
+showTab();runSim(()=>{renderAll();showTab()});
+</script>
